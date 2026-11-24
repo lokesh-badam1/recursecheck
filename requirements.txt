@@ -1,0 +1,6 @@
+# Probe tool, web UI and report (installed in the probe image by probe/Dockerfile)
+dnspython>=2.4
+PyYAML>=6.0
+Jinja2>=3.1
+# Decoy server (installed in the decoy image by decoy/Dockerfile)
+dnslib>=0.9

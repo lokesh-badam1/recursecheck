@@ -1,0 +1,35 @@
+# Ground truth for the lab. "expected" is the known-correct label for each server.
+decoy: {ip: 10.10.0.5, zone: decoy.lab}
+control_net: 10.10.1.0/24      # the only range policy-refusing servers allow
+probe_ip: 10.10.2.10           # external probe client (your tool runs here)
+control_ip: 10.10.1.10         # control client (inside the allowed range)
+web_ip: 10.10.2.20             # web UI, external vantage (outside the allowed range)
+web_internal_ip: 10.10.1.20    # web UI alias inside the allowed range (internal vantage)
+
+targets:
+  # 5 open recursive -> Recursive
+  - {name: t01, ip: 10.10.0.11, type: open,      expected: Recursive}
+  - {name: t02, ip: 10.10.0.12, type: open,      expected: Recursive}
+  - {name: t03, ip: 10.10.0.13, type: open,      expected: Recursive}
+  - {name: t04, ip: 10.10.0.14, type: open,      expected: Recursive, max_qps: 5}   # resolver drops queries above 5 per second
+  - {name: t05, ip: 10.10.0.15, type: open,      expected: Recursive, max_qps: 3}   # resolver drops queries above 3 per second
+  # 4 policy-refusing -> Refused
+  - {name: t06, ip: 10.10.0.16, type: refusing,  expected: Refused}
+  - {name: t07, ip: 10.10.0.17, type: refusing,  expected: Refused}
+  - {name: t08, ip: 10.10.0.18, type: refusing,  expected: Refused}
+  - {name: t09, ip: 10.10.0.19, type: refusing,  expected: Refused}
+  # 4 authoritative-only -> Authoritative-only
+  - {name: t10, ip: 10.10.0.20, type: auth_only, expected: Authoritative-only}
+  - {name: t11, ip: 10.10.0.21, type: auth_only, expected: Authoritative-only}
+  - {name: t12, ip: 10.10.0.22, type: auth_only, expected: Authoritative-only}
+  - {name: t13, ip: 10.10.0.23, type: auth_only, expected: Authoritative-only}
+  # 3 forwarders (forward everything to an open target) -> Recursive
+  - {name: t14, ip: 10.10.0.24, type: forwarder, upstream: 10.10.0.11, expected: Recursive}
+  - {name: t15, ip: 10.10.0.25, type: forwarder, upstream: 10.10.0.12, expected: Recursive}
+  - {name: t16, ip: 10.10.0.26, type: forwarder, upstream: 10.10.0.13, expected: Recursive}
+  # 2 heavy loss (random packet drop) -> Inconclusive
+  - {name: t17, ip: 10.10.0.27, type: lossy,     loss: 0.6, expected: Inconclusive}
+  - {name: t18, ip: 10.10.0.28, type: lossy,     loss: 0.9, expected: Inconclusive}
+  # 2 broken / silent -> Inconclusive
+  - {name: t19, ip: 10.10.0.29, type: silent,    expected: Inconclusive}   # firewall drops all DNS
+  - {name: t20, ip: 10.10.0.30, type: broken,    expected: Inconclusive}   # upstream for decoy zone is dead

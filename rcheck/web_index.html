@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RecurseCheck</title>
+<style>
+:root{--bg:#f4f6f9;--card:#fff;--ink:#12171f;--mute:#566070;--line:#e1e5eb;--accent:#2457d6;--accent-ink:#fff;
+--yes:#a8200f;--yesbg:#fde7e4;--no:#05683f;--nobg:#d6f5e3;--unk:#44505f;--unkbg:#e8ebf0;--code:#f0f2f6}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1117;--card:#171b23;--ink:#e8ebf0;--mute:#98a3b3;--line:#2a303b;--accent:#6c8cff;--accent-ink:#0b1020;
+--yes:#ffb4a8;--yesbg:#4a1d18;--no:#7ee2a8;--nobg:#103a26;--unk:#cbd2dc;--unkbg:#272d38;--code:#1f2530}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:24px 16px 64px}
+header h1{margin:0;font-size:26px;letter-spacing:-.02em}
+header p{margin:4px 0 20px;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+select,button{font:inherit;border-radius:8px;border:1px solid var(--line);padding:10px 12px;background:var(--card);color:var(--ink)}
+select{flex:1;min-width:220px}
+button{cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button:disabled{opacity:.55;cursor:wait}
+button:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.hint{color:var(--mute);font-size:14px;margin:10px 0 0}
+.answer{display:flex;gap:16px;align-items:center;border-radius:10px;padding:16px}
+.answer .big{font-size:26px;font-weight:800;letter-spacing:-.01em;min-width:190px}
+.answer h2{margin:0;font-size:19px}
+.answer p{margin:2px 0 0}
+.YES{background:var(--yesbg);color:var(--yes)} .NO{background:var(--nobg);color:var(--no)} .UNKNOWN{background:var(--unkbg);color:var(--unk)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px}
+.chip{background:var(--code);border-radius:999px;padding:3px 11px;font-size:13px}
+h3{font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:20px 0 8px}
+ol.trace{margin:0;padding-left:20px} ol.trace li{margin:3px 0;font-size:14px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-weight:600}
+td.mono,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;word-break:break-all}
+.tablewrap{overflow-x:auto}
+.ok{color:var(--no);font-weight:600} .bad{color:var(--yes);font-weight:600}
+.err{color:var(--yes)}
+.vantage{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:9px 16px;background:var(--card)}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);font-weight:700}
+.rate{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.rate input[type=range]{width:200px;accent-color:var(--accent)}
+.rate output{display:inline-block;min-width:2ch;font-weight:700;font-size:20px}
+.rate label{display:flex;gap:8px;align-items:center}
+.tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:14px 0 4px}
+.tile{background:var(--code);border-radius:10px;padding:10px 12px}
+.tile b{display:block;font-size:28px;line-height:1.1}
+.tile span{font-size:13px;color:var(--mute)}
+.bar{height:8px;background:var(--code);border-radius:99px;overflow:hidden;margin:10px 0 0}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .25s}
+@media(max-width:560px){.tiles{grid-template-columns:repeat(2,1fr)}}
+.tag{display:inline-block;padding:1px 9px;border-radius:6px;font-weight:700;font-size:13px}
+@media(max-width:560px){.answer{flex-direction:column;align-items:flex-start}.answer .big{min-width:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>RecurseCheck</h1>
+  <p>Does this DNS server allow recursive queries? Choose whether the query comes from an external or an internal client. Lab targets only.</p>
+</header>
+
+<div class="card">
+  <div class="row">
+    <label for="target" class="hint" style="margin:0">Resolver</label>
+    <select id="target" aria-label="Choose a resolver to test"></select>
+    <button id="go" class="primary">Test resolver</button>
+    <button id="all">Test all</button>
+  </div>
+  <div class="vantage">
+    <span class="hint" style="margin:0">Send the query from</span>
+    <div class="seg" role="group" aria-label="Probe vantage point">
+      <button id="v-external" aria-pressed="true">External client</button>
+      <button id="v-internal" aria-pressed="false">Internal client</button>
+    </div>
+    <span id="vnote" class="hint" style="margin:0"></span>
+  </div>
+  <div class="rate">
+    <label for="qps">Queries per second <input id="qps" type="range" min="1" max="10" value="1"><output id="qpsv">1</output></label>
+    <span class="hint" style="margin:0">for 1 second</span>
+    <label><input id="early" type="hidden"></label>
+  </div>
+  <p id="plan" class="hint"></p>
+  <p class="hint"></p>
+</div>
+
+<div id="status" class="hint" role="status" aria-live="polite"></div>
+<div id="result"></div>
+<div id="allcard" class="card" hidden>
+  <h3 style="margin-top:0">All targets</h3>
+  <div class="tablewrap"><table>
+<thead><tr><th>Target</th><th>IP</th><th>From</th><th>Classification</th><th>Replies / sent</th><th>Verdict</th></tr></thead>
+    <tbody id="allrows"></tbody>
+  </table></div>
+  <p id="summary" class="hint"></p>
+</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let busy = false, vantage = 'external', vantages = {};
+
+async function api(path, body) {
+  const r = await fetch(path, body ? {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)} : undefined);
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+function setBusy(b, msg) {
+  busy = b;
+  ['go','all','target','v-external','v-internal','qps','early'].forEach(i => $(i).disabled = b);
+  $('status').textContent = msg || '';
+}
+function setVantage(v) {
+  vantage = v;
+  ['external','internal'].forEach(k => $('v-' + k).setAttribute('aria-pressed', String(k === v)));
+  const i = vantages[v];
+  
+}
+function updatePlan() {
+  const q = +$('qps').value;
+  $('qpsv').textContent = q;
+  
+}
+const flag = v => v === true ? '1' : v === false ? '0' : '-';
+const settings = () => ({vantage, qps: +$('qps').value, seconds: 1, stop_early: $('early').checked});
+
+async function runJob(name, onUpdate) {
+  const {job} = await api('/api/test', {target: name, ...settings()});
+  for (;;) {
+    const s = await api('/api/job/' + job);
+    onUpdate(s);
+    if (s.state !== 'running') return s;
+    await sleep(250);
+  }
+}
+
+function banner(s) {
+  const r = s.result;
+  if (s.state === 'done' && r)
+    return `<div class="answer ${esc(r.answer)}"><div class="big">${esc(r.verdict)}</div>
+      <div><h2>${esc(r.target)} (${esc(r.ip)}): ${esc(r.headline)}</h2><p>${esc(r.detail)}</p></div></div>`;
+  if (s.early)
+    return `<div class="answer YES"><div class="big">Recursive</div>
+      <div><h2>${esc(s.target)} (${esc(s.ip)}): recursion proven</h2>
+      <p>Query #${s.early.query} came back with the marker answer and its unique name reached the decoy server. One proof is enough, so the verdict is already YES. Counters are still updating.</p></div></div>`;
+  return `<div class="answer UNKNOWN"><div class="big">...</div>
+    <div><h2>${esc(s.target)} (${esc(s.ip)}): testing</h2>
+    <p>${s.sent} of ${s.planned} queries sent, ${s.replies} replies so far. The verdict is shown as soon as the evidence is enough.</p></div></div>`;
+}
+
+function render(s) {
+  if (s.state === 'error') {
+    $('result').innerHTML = `<div class="card err">Test failed: ${esc(s.error)}</div>`; return;
+  }
+  const r = s.result, done = s.state !== 'running';
+  const pct = s.planned ? Math.round(100 * (s.sent + (done ? s.not_sent : 0)) / s.planned) : 0;
+  const qrows = s.queries.map(q => {
+    const st = q.state === 'pending' ? (done ? '<span class="hint">not sent</span>' : '<span class="hint">waiting</span>')
+      : q.state === 'sent' ? '<span class="hint">sent, waiting for reply</span>'
+      : q.state === 'reply' ? esc(q.rcode) : '<span class="err">no reply</span>';
+    return `<tr><td>${q.i}</td><td>${q.t === undefined ? '-' : q.t.toFixed(2)}</td><td class="mono">${esc(q.name || '')}</td><td>${st}</td>
+      <td>${flag(q.ra)}</td><td class="mono">${esc(q.answer || '-')}</td>
+      <td>${q.state === 'pending' ? '-' : (q.seen ? '<span class="ok">yes</span>' : (q.state === 'sent' ? '...' : 'no'))}</td></tr>`;
+  }).join('');
+  const prow = s.per_second.map(p => `<tr><td>Second ${p.second}</td><td>${p.sent}</td><td>${p.replies}</td><td>${p.seen}</td><td>${p.sent - p.replies}</td></tr>`).join('');
+  $('result').innerHTML = `<div class="card">${banner(s)}
+    <div class="tiles">
+      <div class="tile"><b>${s.planned}</b><span>queries planned</span></div>
+      <div class="tile"><b>${s.sent}</b><span>queries sent</span></div>
+      <div class="tile"><b>${s.replies}</b><span>replies received</span></div>
+      <div class="tile"><b>${s.seen}</b><span>names seen by decoy server</span></div>
+      <div class="tile"><b>${s.no_reply}</b><span>no reply (dropped or lost)</span></div>
+    </div>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <h3>Per second</h3>
+    <div class="tablewrap"><table><thead><tr><th>Window</th><th>Sent</th><th>Replies</th><th>Reached decoy</th><th>No reply</th></tr></thead><tbody>${prow}</tbody></table></div>
+    <h3>Queries</h3>
+    <div class="tablewrap"><table><thead><tr><th>#</th><th>Sent at (s)</th><th>Name queried</th><th>Result</th><th>RA</th><th>Answer</th><th>Seen by decoy</th></tr></thead><tbody>${qrows}</tbody></table></div>
+  </div>`;
+}
+
+async function testOne() {
+  if (busy) return;
+  const name = $('target').value;
+  setBusy(true, `Testing ${name}...`);
+  $('result').innerHTML = ''; $('allcard').hidden = true;
+  try { render(await runJob(name, render)); setBusy(false, ''); }
+  catch (e) { setBusy(false, ''); $('result').innerHTML = `<div class="card err">Test failed: ${esc(e.message)}</div>`; }
+}
+
+async function testAll() {
+  if (busy) return;
+  const names = [...$('target').options].map(o => o.value);
+  $('result').innerHTML = ''; $('allrows').innerHTML = ''; $('allcard').hidden = false; $('summary').textContent = '';
+  let done = 0, match = 0;
+  for (const n of names) {
+    setBusy(true, `Testing ${n} (${done + 1} of ${names.length})...`);
+    try {
+      const s = await runJob(n, () => {});
+      if (s.state === 'error') throw new Error(s.error);
+      const r = s.result;
+      done++; if (r.correct) match++;
+      $('allrows').insertAdjacentHTML('beforeend', `<tr><td>${esc(r.target)}</td><td class="mono">${esc(r.ip)}</td><td>${esc(r.vantage_label)}</td>
+        <td><span class="tag ${esc(r.answer)}">${esc(r.verdict)}</span></td><td>${s.replies} / ${s.sent}</td><td>${esc(r.verdict)}<div class="hint" style="margin:0">${esc(r.reason)}</div></td></tr>`);
+    } catch (e) {
+      $('allrows').insertAdjacentHTML('beforeend', `<tr><td>${esc(n)}</td><td colspan="7" class="err">${esc(e.message)}</td></tr>`);
+    }
+  }
+  setBusy(false, '');
+}
+
+(async () => {
+  try {
+    const lim = await api('/api/limits');
+    $('qps').max = lim.max_qps;
+    const ts = await api('/api/targets');
+    $('target').innerHTML = ts.map(t => `<option value="${esc(t.name)}">${esc(t.name)}  -  ${esc(t.ip)}</option>`).join('');
+    (await api('/api/vantages')).forEach(v => vantages[v.id] = v);
+    setVantage('external'); updatePlan();
+  } catch (e) { $('status').textContent = 'Could not load targets: ' + e.message; }
+  $('qps').oninput = updatePlan;
+  $('v-external').onclick = () => setVantage('external');
+  $('v-internal').onclick = () => setVantage('internal');
+  $('go').onclick = testOne; $('all').onclick = testAll;
+})();
+</script>
+</body>
+</html>
