@@ -16,10 +16,8 @@ lookup. That is evidence of what the server *did*, not only what it *claims*.
 - **Decoy-server evidence:** unique per-query names, matched against the decoy server's log.
 - **Four-class classifier** with ordered rules, reason codes, an evidence-strength rating and a decision trace for every verdict.
 - **Seeded ground truth:** `targets.yaml` holds the expected label of each of the 20 lab servers; results are scored with a confusion matrix, precision/recall and coverage.
-- **Baseline comparison:** every run also scores a naive single-query RA-flag scanner on the same evidence.
 - **Rate controls:** token buckets per server and overall, configurable timeout and retry limits. In the web UI you choose 1 to 10 queries to send within one second (hard cap 10); every query in a test uses a different unique name.
 - **Live counters:** queries sent, replies received and names seen by the decoy server, per second and per query, so a resolver that limits its own query rate (t04: 5 per second, t05: 3 per second) can be seen dropping the excess.
-- **Safety:** allow-list scope guard (lab network only, max 20, A/TXT only), dry-run mode, Ctrl+C kill switch, append-only audit log of every query, real source address only.
 - **Reproducibility:** each run saves its seed and settings; `--replay` repeats it.
 - **Web interface:** choose a lab resolver, choose the **vantage point** (external or internal client) with a toggle, click *Test resolver*, see YES / NO / UNKNOWN with the evidence.
 - **Exposure report:** a self-contained HTML report (print to PDF) with results, accuracy, remediation advice and rate-control proof.
@@ -125,7 +123,6 @@ verify.sh           manual lab checks
 - All 20 lab servers run BIND; other resolver software (Unbound, dnsmasq, NSD) is not yet part of the lab.
 - Packet loss is simulated with an iptables random drop; a lossy server can occasionally answer all four queries in a run.
 - One vantage point (the external probe client); IPv4 only; DNSSEC and other query types are out of scope.
-- "Authoritative-only" is decided from absence of evidence, so its evidence strength is medium.
 
 ## Team
 
